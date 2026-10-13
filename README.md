@@ -1,67 +1,27 @@
-# Rift Wave Arena 4.3 · Multiplayer cooperativo
+# RIFT WAVE ARENA 4.4 · MULTIPLAYER COM ARSENAL ORIGINAL
 
-## Estado atual
+O modo solo original permanece completo na página principal `index.html`. O novo cooperativo é acessado por `/coop.html` e usa o mesmo catálogo `core.mjs` e os mesmos modelos procedurais `models.mjs` de **23 armas 3D**, incluindo todas as sete raridades (a Divina fica disponível somente a partir da onda 12).
 
-- ✅ Interface e arena 3D cooperativa prontas.
-- ✅ Servidor WebSocket Node.js sem bibliotecas externas.
-- ✅ Salas privadas com código de 6 caracteres e até 4 participantes.
-- ✅ Compartilhamento de posições, drones, ondas, vida, placar e revive.
-- ✅ 24 testes automatizados passaram, incluindo dois jogadores conectados de verdade no mesmo servidor local.
-- ⚠️ O servidor público ainda precisa ser hospedado: sem um endereço `wss://`, o multiplayer online não vai conectar.
-- ⚠️ É o MVP cooperativo, independente do modo solo; os upgrades, todas as armas e a progressão do modo solo ainda não foram portados para a arena multiplayer.
+## Como jogar
 
-## Como ativar online pelo Android, sem PC
+1. Abra https://rift-wave-arena.vercel.app/coop.html no aplicativo ou navegador.
+2. Crie a sala e envie o código de seis caracteres. Até 4 pessoas por sala, inclusive em casas diferentes.
+3. Cada jogador começa com PULSO M1 3D. Os três slots de inventário aparecem na tela; 1, 2 e 3 no teclado ou toque nos slots/↻ no celular.
+4. Entre ondas, cada piloto recebe três recompensas (armas ou melhorias). Se o inventário estiver cheio, escolha a arma que deseja substituir.
+5. Ative o scanner do VISOR ÔMEGA com E ou botão ◉ no celular, e proteja os colegas que precisam ser revividos (R ou ✚).
+6. No lobby, toque nos botões de gráficos e FPS para alternar de LEVE até DDLS5 e de 30 a 120 FPS. As seleções usam o mesmo armazenamento local da campanha solo e dependem da tela e da GPU.
 
-### Opção recomendada: GitHub + Render
+## Integração de servidor e segurança
 
-1. Faça login em https://github.com e crie um repositório **novo** chamado `rift-wave-multiplayer-server`. Deixe público (o código não contém chaves ou segredos). O site da GitHub pode ser usado pelo navegador do Android. Não publique tokens ou senhas nele.
-2. Adicione os três arquivos da pasta `server/` do ZIP: `package.json`, `ws-lite.mjs` e `game-server.mjs`. Preserve a pasta `server/`. Como alternativa, envie também `server/render.yaml` (não é obrigatório).
-3. Abra https://dashboard.render.com/ e crie uma conta, se necessário. Toque em **New → Web Service**.
-4. Conecte sua conta GitHub ao Render e escolha o repositório.
-5. Preencha:
-   - **Name:** `rift-wave-multiplayer` (se disponível; pode ser outro)
-   - **Language / Runtime:** `Node`
-   - **Branch:** `main`
-   - **Root Directory:** `server`
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-   - **Instance:** `Free` (se estiver disponível)
-   - **Health Check Path:** `/health`
-   - **Environment Variable (opcional):** `ALLOWED_ORIGIN=https://rift-wave-arena.vercel.app`
-6. Clique em **Deploy Web Service**. Espere a mensagem de que o serviço está disponível. Você receberá um endereço real, por exemplo `https://SEU-NOME.onrender.com` (exemplo, não é um servidor já ativo).
-7. Abra `https://SEU-NOME.onrender.com/health` no navegador. O resultado deve conter `"ok":true`.
-8. Abra https://rift-wave-arena.vercel.app/multiplayer.html ou use o botão **Multiplayer online** do menu principal.
-9. No campo **Servidor multiplayer**, cole o endereço real trocando `https` por `wss` e acrescentando `/ws`: `wss://SEU-NOME.onrender.com/ws`.
-10. Digite seu apelido e pressione **CRIAR SALA**. Copie o código de 6 caracteres. Seu amigo abre a mesma tela, coloca o mesmo endereço do servidor, seu apelido e o código em **ENTRAR**.
-11. O criador da sala pressiona **INICIAR PARTIDA**. Pronto: uma única onda e os mesmos drones para todos.
+O cliente usa `wss://rift-wave-multiplayer-server.onrender.com/ws`. O servidor real está no repositório `https://github.com/siwijoo/rift-wave-multiplayer-server`, com a pasta `server` configurada como Root Directory no Render. Entre em `/health` para ver se a versão é `4.4-arsenal`.
 
-**Importante:** Render Free hiberna com aproximadamente 15 minutos sem tráfego. A primeira conexão pode levar cerca de 1 minuto para acordar o servidor. O servidor não é um recurso do Vercel. Usuários do APK antigo recebem a interface multiplayer automaticamente porque ela é servida pelo mesmo domínio; mas ainda precisam configurar o endereço WSS uma vez.
+O servidor autoriza salas, tiros, cadência, escolha de recompensas, inventário, dano, escudos, movimentação, scanner ÔMEGA e revive. O cliente não controla dano e não pode equipar arma que não possui. O compartilhamento de estado depende do servidor WebSocket, que pode entrar em modo de economia de recursos no Render Free.
 
-### Sem GitHub ainda?
+A campanha solo conserva as 23 armas, melhorias, ÔMEGA, opções gráficas, o inventário e o modo desenvolvedor. O cooperativo mantém uma seleção de melhorias com efeitos implementados no servidor, mas os contratos, a Fundição, o MOD MENU e toda a progressão da campanha solo ainda não foram portados integralmente para a sessão online. Eles continuam disponíveis no solo.
 
-Crie primeiro o repositório vazio pela página https://github.com/new e me diga **o nome do repositório**. Posso tentar preencher os arquivos do servidor pela integração com GitHub ligada ao ChatGPT, se seu repositório estiver visível para ela.
+## Testes
 
-## Testes locais (para quem tiver Node.js)
+Do diretório raiz: `node --test core.test.mjs eclipse.test.mjs frame-rate.test.mjs graphics.test.mjs integration.test.mjs`
+Da pasta `server`: `node --test game-server.test.mjs`
 
-Dentro de `server/`:
-
-```bash
-node --test game-server.test.mjs
-node game-server.mjs
-```
-
-Depois sirva os arquivos do jogo por HTTP na porta 5173, abra `http://localhost:5173/multiplayer.html` e use `ws://localhost:3000/ws` como servidor. Não use conexão `ws://` num site `https://` porque navegadores modernos bloqueiam conteúdo misto.
-
-## Resumo de arquitetura
-
-- Hospedagem web: Vercel (HTML, CSS e Three.js)
-- Partida: servidor Node WebSocket de longa duração (Render ou outro provedor com suporte WebSocket)
-- Simulação compartilhada: tick 20 Hz; snapshots 10 Hz
-- Código de salas aleatório e anfitrião com comando de iniciar
-- Sem cadastro, sem chat público, sem pagamentos e sem dados pessoais obrigatórios
-- O código de sala **não** é autenticação forte; envie-o apenas para amigos
-- O servidor mantém salas em memória. Reinícios encerram as salas abertas
-
-## Limitações conhecidas desta primeira versão
-
-O modo cooperativo tem dinâmica própria e ações básicas. Ele não é ainda o sistema completo de build, raridades e 23 armas do modo solo. Sem servidor hospedado, o botão Multiplayer apenas abre a tela de salas. A movimentação é mostrada aos demais por snapshots, sem predição avançada nem rollback. Teste a latência e o FPS no Android antes de ampliar a quantidade de jogadores.
+O teste de rede usa duas conexões WebSocket locais, com a mesma sala, troca de arsenal, recompensa de onda e rejeição de trapaça em arma/dano. A verificação visual em um navegador automatizado pode depender do ambiente.

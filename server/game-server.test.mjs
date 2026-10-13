@@ -25,3 +25,41 @@ test('malformed code, missing rooms and health check work',async()=>{
  const c=await connect(`ws://127.0.0.1:${port}/ws`);await send(c,{type:'join',code:'ZZZZZZ'});const err=await message(c,'error');assert.match(err.message,/não encontrada/);c.ws.close();await wait(40);
  }finally{await app.close();}
 });
+
+test('4.4 coop synchronizes original 23-weapon arsenal, equipment and legitimate wave rewards', async () => {
+ const { WEAPONS } = await import('./rift-core.mjs');
+ assert.equal(WEAPONS.length,23);
+ const app=createGameServer({port:0,hostname:'127.0.0.1',origin:'http://localhost:3000'});
+ const {port}=await app.listen();
+ try {
+   const host=await connect(`ws://127.0.0.1:${port}/ws`),friend=await connect(`ws://127.0.0.1:${port}/ws`);
+   await send(host,{type:'create',name:'Host'});const w=await message(host,'welcome');
+   const l=await message(host,'loadout');assert.deepEqual(l.weapons,['pulse']);assert.equal(l.weapon,'pulse');
+   await send(friend,{type:'join',code:w.code,name:'Friend'});await message(friend,'welcome');await message(friend,'loadout');
+   const room=app.rooms.get(w.code),player=room.players.get(w.id);
+   await send(host,{type:'equip',slot:2});assert.equal(player.run.weapon,'pulse','invalid slot does not equip');
+   await send(host,{type:'choose',index:0,replaceSlot:0});assert.equal(player.run.weapons.length,1,'outside reward phase cannot grant weapon');
+   await send(host,{type:'start'});await message(host,'started');await wait(2400);
+   room.enemies=[];
+   const offer=await message(host,'rewards',1000);
+   assert.equal(offer.choices.length,3);assert.ok(offer.choices.every(c=>c.id&&c.name&&c.rarity));
+   assert.ok(offer.choices.every(c=>c.rarity!=='secret'&&c.rarity!=='divine'));
+   assert.equal(room.phase,'between');
+   // Force a known legitimate weapon offer to test inventory and remote synchronization.
+   player.offers=[{...WEAPONS.find(x=>x.id==='arc'),type:'weapon'}];
+   await send(host,{type:'choose',index:9,replaceSlot:0});assert.deepEqual(player.run.weapons,['pulse']);
+   await send(host,{type:'choose',index:0,replaceSlot:0});
+   const selected=await message(host,'rewardApplied');assert.equal(selected.rewardId,'arc');
+   assert.deepEqual(player.run.weapons,['pulse','arc']);
+   const equipped=await message(friend,'equipped');assert.equal(equipped.weapon,'arc');
+   host.messages=host.messages.filter(m=>m.type!=='loadout');await send(host,{type:'equip',slot:0});const switchAck=await message(host,'loadout');assert.equal(switchAck.weapon,'pulse');
+   assert.equal(player.run.weapon,'pulse');
+   await send(host,{type:'equip',slot:1});const switchBack=await message(host,'loadout');assert.equal(switchBack.weapon,'arc');
+   assert.equal(player.run.weapon,'arc');
+   room.phase='combat';room.enemies=[{id:888,type:'drone',x:player.x,z:player.z-5,hp:200,maxHp:200,attackAt:0}];
+   await send(host,{type:'fire',weapon:'genesis',damage:99999});
+   const shot=await message(friend,'fire');assert.equal(shot.weapon,'arc','client cannot forge another weapon');
+   assert.ok(room.enemies[0].hp>100,'server-authoritative damage cannot be forged');
+   friend.ws.close();host.ws.close();await wait(100);
+ } finally {await app.close();}
+});
