@@ -1,0 +1,9 @@
+{
+  "name": "rift-wave-arena-multiplayer",
+  "version": "4.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor cooperativo em tempo real da Rift Wave Arena",
+  "scripts": { "start": "node game-server.mjs", "test": "node --test *.test.mjs" },
+  "engines": { "node": ">=20" }
+}

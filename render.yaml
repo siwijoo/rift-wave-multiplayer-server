@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: rift-wave-multiplayer
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGIN
+        value: https://rift-wave-arena.vercel.app
